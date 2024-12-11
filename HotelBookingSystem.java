@@ -26,6 +26,16 @@ class Hotel {
     public void addRoom(Room room) {
         rooms.add(room);
     }
+
+    public List<Room> searchAvailableRooms(Date checkInDate, Date checkOutDate) {
+        List<Room> availableRooms = new ArrayList<>();
+        for (Room room : rooms) {
+            if (room.isAvailable()) {
+                availableRooms.add(room);
+            }
+        }
+        return availableRooms;
+    }
 }
 
 class Room {
@@ -106,6 +116,11 @@ class Booking {
         room.setAvailable(true);
     }
 
+    public void sendConfirmation() {
+        System.out.println("Booking confirmed for " + client.getFullName() +
+            ". Room " + room.getRoomNumber() + " from " + checkInDate + " to " + checkOutDate + ".");
+    }
+
     @Override
     public String toString() {
         return "Booking[" +
@@ -114,6 +129,18 @@ class Booking {
                ", checkInDate=" + checkInDate +
                ", checkOutDate=" + checkOutDate +
                ']';
+    }
+}
+
+class Admin {
+    public void addHotel(HotelBookingSystem system, String name, String address) {
+        Hotel hotel = new Hotel(name, address);
+        system.addHotel(hotel);
+    }
+
+    public void addRoom(Hotel hotel, int roomNumber, String type, double pricePerNight) {
+        Room room = new Room(roomNumber, type, pricePerNight);
+        hotel.addRoom(room);
     }
 }
 
@@ -141,6 +168,7 @@ public class HotelBookingSystem {
             if (room.getRoomNumber() == roomNumber && room.isAvailable()) {
                 Booking booking = new Booking(client, room, checkInDate, checkOutDate);
                 bookings.add(booking);
+                booking.sendConfirmation();
                 return booking;
             }
         }
@@ -153,21 +181,44 @@ public class HotelBookingSystem {
     }
 
     public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
         HotelBookingSystem system = new HotelBookingSystem();
+        Admin admin = new Admin();
 
-        Hotel hotel = new Hotel("Sunshine Hotel", "123 Sunny Street");
-        hotel.addRoom(new Room(101, "Single", 50.0));
-        hotel.addRoom(new Room(102, "Double", 100.0));
-        system.addHotel(hotel);
+        // Add initial data
+        admin.addHotel(system, "Sunshine Hotel", "123 Sunny Street");
+        Hotel hotel = system.hotels.get(0);
+        admin.addRoom(hotel, 101, "Single", 50.0);
+        admin.addRoom(hotel, 102, "Double", 100.0);
 
-        Client client = new Client("John", "Doe", "john.doe@example.com", "1234567890");
+        // Register client
+        System.out.println("Enter client details:");
+        System.out.print("First name: ");
+        String firstName = scanner.nextLine();
+        System.out.print("Last name: ");
+        String lastName = scanner.nextLine();
+        System.out.print("Email: ");
+        String email = scanner.nextLine();
+        System.out.print("Phone number: ");
+        String phoneNumber = scanner.nextLine();
+        Client client = new Client(firstName, lastName, email, phoneNumber);
         system.registerClient(client);
 
+        // Book a room
         try {
-            Booking booking = system.bookRoom(client, hotel, 102, new Date(), new Date());
+            System.out.println("Available rooms in Sunshine Hotel:");
+            for (Room room : hotel.searchAvailableRooms(new Date(), new Date())) {
+                System.out.println("Room " + room.getRoomNumber() + ", Type: " + room.getType() + ", Price: " + room.getPricePerNight());
+            }
+
+            System.out.print("Enter room number to book: ");
+            int roomNumber = scanner.nextInt();
+            Booking booking = system.bookRoom(client, hotel, roomNumber, new Date(), new Date());
             System.out.println("Booking successful: " + booking);
         } catch (IllegalArgumentException e) {
             System.out.println(e.getMessage());
         }
+
+        scanner.close();
     }
 }
